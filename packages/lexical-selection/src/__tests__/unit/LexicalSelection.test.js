@@ -1764,4 +1764,70 @@ describe('LexicalSelection tests', () => {
       });
     });
   });
+
+  describe('Node.replace', () => {
+    let text1, text2, text3, paragraph, testEditor;
+
+    beforeEach(async () => {
+      testEditor = createTestEditor();
+      const element = document.createElement('div');
+      testEditor.setRootElement(element);
+      await testEditor.update(() => {
+        const root = $getRoot();
+        paragraph = $createParagraphNode();
+        text1 = $createTextNode('Hello ');
+        text2 = $createTextNode('awesome');
+        text2.toggleFormat('bold');
+        text3 = $createTextNode(' world');
+        paragraph.append(text1, text2, text3);
+        root.append(paragraph);
+      });
+    });
+
+    [
+      {
+        fn: () => {
+          text2.select(1, 1);
+          text2.replace($createTestDecoratorNode());
+          return {key: paragraph.__key, offset: 2};
+        },
+        name: 'moves selection if selected node replaced with decorator in the middle',
+      },
+      {
+        fn: () => {
+          text2.select(1, 1);
+          text2.replace($createLineBreakNode());
+          return {key: paragraph.__key, offset: 2};
+        },
+        name: 'moves selection if selected node replaced with linebreak in the middle',
+      },
+      {
+        fn: () => {
+          text3.select();
+          text3.replace($createTestDecoratorNode());
+          return {key: paragraph.__key, offset: 3};
+        },
+        name: 'moves selection if last selected node replaced with decorator',
+      },
+      {
+        fn: () => {
+          text3.select();
+          text3.replace($createLineBreakNode());
+          return {key: paragraph.__key, offset: 3};
+        },
+        name: 'moves selection if last selected node replaced with linebreak',
+      },
+    ].forEach((testCase) => {
+      test(testCase.name, async () => {
+        await testEditor.update(() => {
+          const {key, offset} = testCase.fn();
+          const selection = $getSelection();
+          expect(selection.anchor.key).toBe(key);
+          expect(selection.anchor.offset).toBe(offset);
+          expect(selection.focus.key).toBe(key);
+          expect(selection.focus.offset).toBe(offset);
+        });
+      });
+    });
+  });
 });
